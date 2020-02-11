@@ -1,7 +1,7 @@
-from parameters import CustomParameter
+from parameters import WaterLPParameter
 
 
-class San_Joaquin_Valley_WYI(CustomParameter):
+class San_Joaquin_Valley_WYI(WaterLPParameter):
     """
     San Joaquin Valley Water Year Index = 0.6 * Current Apr-Jul Runoff Forecast (in maf)
    + 0.2 * Current Oct-Mar Runoff in (maf) + 0.2 * Previous Water Year's Index

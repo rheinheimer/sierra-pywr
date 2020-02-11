@@ -2,7 +2,7 @@ import pandas as pd
 from calendar import monthrange
 from dateutil.relativedelta import relativedelta
 from pywr.parameters._parameters cimport Parameter
-from pywr._core cimport Timestep, ScenarioIndex
+# from pywr._core cimport Timestep, ScenarioIndex
 
 cdef class CustomParameter(Parameter):
     cdef unicode res_class
@@ -18,8 +18,8 @@ cdef class CustomParameter(Parameter):
     cdef unicode elevation_param
     cdef int operational_water_year
 
-    def __init__(self, model, **kwargs):
-        super().__init__(model, **kwargs)
+    def __cinit__(self, model):
+        super().__init__(model)
 
         self.attr_name = ''
         self.res_name = 'network'
@@ -27,6 +27,10 @@ cdef class CustomParameter(Parameter):
 
     cpdef setup(self):
         super(CustomParameter, self).setup()
+
+        self.attr_name = ''
+        self.res_name = 'network'
+        self.month_offset = 0
 
         name_parts = self.name.split('/')
         self.res_name = name_parts[0]

@@ -1,7 +1,7 @@
-from parameters import CustomParameter
+from parameters import WaterLPParameter
 
 
-class IFR_at_Shaffer_Bridge_Max_Flow(CustomParameter):
+class IFR_at_Shaffer_Bridge_Max_Flow(WaterLPParameter):
     """
     This policy calculates instream flow requirements in the Merced River below the Merced Falls powerhouse.
     """

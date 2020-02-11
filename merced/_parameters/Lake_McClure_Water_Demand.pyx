@@ -1,5 +1,5 @@
 from parameters import CustomParameter
-
+from pywr._core cimport Timestep, ScenarioIndex
 
 class Lake_McClure_Water_Demand(CustomParameter):
     """"""

@@ -1,7 +1,7 @@
-from parameters import CustomParameter
+from parameters import WaterLPParameter
 
 
-class San_Joaquin_Valley_WYT(CustomParameter):
+class San_Joaquin_Valley_WYT(WaterLPParameter):
     """"""
 
     def _value(self, timestep, scenario_index):
