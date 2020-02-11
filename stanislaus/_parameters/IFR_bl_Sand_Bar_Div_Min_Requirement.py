@@ -27,7 +27,7 @@ class IFR_bl_Sand_Bar_Div_Min_Requirement(WaterLPParameter):
 
         # Calculate supp IFR
 
-        if self.mode == 'scheduling':
+        if self.model.mode == 'scheduling':
             if self.datetime.month == 10 and self.datetime.day == 1:
                 self.peak_dt = self.model.tables["Peak Donnells Runoff"][timestep.year + 1]
             diff_day = (self.datetime - self.peak_dt).days

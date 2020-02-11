@@ -1,9 +1,9 @@
-from parameters import WaterLPParameter
+from parameters import CustomParameter
 from datetime import date
 import numpy as np
 
 
-class IFR_at_Shaffer_Bridge_Min_Flow(WaterLPParameter):
+class IFR_at_Shaffer_Bridge_Min_Flow(CustomParameter):
     """
     This policy calculates instream flow requirements in the Merced River below the Merced Falls powerhouse.
     """
@@ -21,18 +21,16 @@ class IFR_at_Shaffer_Bridge_Min_Flow(WaterLPParameter):
         # We should be able to add a "WYT" parameter as a general variable and save it to parameters in the JSON file.
         # It could be pre-processed, as currently, or calculated on-the-fly
         csv_kwargs = dict(index_col=0, header=0, parse_dates=False, squeeze=True)
-        self.fish_data = self.read_csv('Management/BAU/Demand/fishPulse_Merced_cfs.csv',
-                                       **csv_kwargs) / 35.3147  # Converting to cms
-        self.div_data = self.read_csv('Management/BAU/Demand/otherDiversions_Merced_cfs.csv',
-                                      **csv_kwargs) / 35.3147  # Converting to cms
+        self.fish_data = self.model.tables["Fish Pulse at Shaffer Bridge"] / 35.3147  # Converting to cms
+        self.div_data = self.model.tables["Other Diversions at Shaffer Bridge"] / 35.3147  # Converting to cms
 
         swrcb_levels_count = self.model.scenarios['SWRCB 40'].size
         if swrcb_levels_count == 1:
-            self.swrcb_levels = [0.0] # baseline scenario only
+            self.swrcb_levels = [0.0]  # baseline scenario only
         else:
             self.swrcb_levels = np.arange(0.0, 0.41, 0.4 / (swrcb_levels_count - 1))
 
-    def value(self, timestep, scenario_index):
+    def _value(self, timestep, scenario_index):
         # All flow units are in cubic meters per second (cms)
 
         # FERC REQUIREMENT
@@ -65,6 +63,14 @@ class IFR_at_Shaffer_Bridge_Min_Flow(WaterLPParameter):
         final_reqt_cms = self.get_down_ramp_ifr(timestep, scenario_index, requirement_mcm, rate=0.25)
 
         return final_reqt_cms * 0.0864
+
+    def value(self, timestep, scenario_index):
+        try:
+            return self._value(timestep, scenario_index)
+        except Exception as err:
+            print('\nERROR for parameter {}'.format(self.name))
+            print('File where error occurred: {}'.format(__file__))
+            print(err)
 
     def ferc_req(self, timestep, scenario_index, wyt):
         mth = timestep.month
@@ -153,7 +159,7 @@ class IFR_at_Shaffer_Bridge_Min_Flow(WaterLPParameter):
             # Because this should depend on the current timestep's inflow, inflow data should be
             # loaded all at once, then replace prev_flow with flow                                                                                             scenario_index)
 
-            flow_val = self.model.tables["Full Natural Flow"][timestep.datetime] / 0.0864 # mcm to cms
+            flow_val = self.model.tables["Full Natural Flow"][timestep.datetime] / 0.0864  # mcm to cms
 
             if mth in (10, 11, 12, 1, 2):
                 # Flow of 50 cfs (1.416 cms) -only from ExChequer flows

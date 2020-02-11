@@ -31,8 +31,8 @@ class IFR_bl_Lyons_Res_Requirement(WaterLPParameter):
                 ifr = 8
             else:  # Aug-Sep
                 ifr = 5
-        ifr *= self.cfs_to_cms
-        if self.mode == 'planning':
+        ifr /= 35.315
+        if self.model.mode == 'planning':
             ifr *= self.days_in_month()
         return ifr
 

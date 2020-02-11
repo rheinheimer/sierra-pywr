@@ -17,7 +17,7 @@ class Donnell_Lake_Spill_Min_Requirement(WaterLPParameter):
         ifr_cms = 0.0
 
         # Calculate supp IFR
-        if self.mode == 'scheduling':
+        if self.model.mode == 'scheduling':
 
             if self.datetime.month == 10 and self.datetime.day == 1:
                 self.peak_dt = self.model.tables["Peak Donnells Runoff"][timestep.year + 1]

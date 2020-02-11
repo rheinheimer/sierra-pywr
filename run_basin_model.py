@@ -13,26 +13,7 @@ import pandas as pd
 
 SECONDS_IN_DAY = 3600 * 24
 
-
-class PlanningTimestepper(Timestepper):
-
-    def setup(self):
-        periods = self.datetime_index
-
-        # Compute length of each period
-        deltas = periods.to_timestamp(how='e') - periods.to_timestamp(how='s')
-        # Round to nearest second
-        deltas = np.round(deltas.total_seconds())
-        # Convert to days
-        deltas = deltas / SECONDS_IN_DAY
-        self._periods = periods
-        self._deltas = deltas
-        self.reset()
-        self._dirty = False
-
-
-# PlanningTimestepper.register()
-
+from parameters import *
 
 def simplify_network(m, delete_gauges=False, delete_observed=True, delete_scenarios=False):
     # simplify the network
@@ -78,7 +59,7 @@ def simplify_network(m, delete_gauges=False, delete_observed=True, delete_scenar
 
             # delete links adjacent to hydropower facilities
             if len({'cost', 'max_flow'} & keys_set) >= 1 and up_nodes.count(
-                node_name) == 1 and down_nodes.count(node_name) == 1 and 'hydropower' not in node_type:
+                    node_name) == 1 and down_nodes.count(node_name) == 1 and 'hydropower' not in node_type:
                 up_edge = up_edges[node_name][0]
                 up_node = node_lookup[up_edge[0]]
                 up_type = up_node['type'].lower()
@@ -756,7 +737,6 @@ def run_model(basin, climate, price_years, network_key=None, start=None, end=Non
         start = planning_model.timestepper.start
         end = planning_model.timestepper.end
         end -= relativedelta(months=months)
-        # planning_model.timestepper = PlanningTimestepper(start, end)
 
         planning_model.setup()
 
@@ -771,6 +751,10 @@ def run_model(basin, climate, price_years, network_key=None, start=None, end=Non
     from pywr.nodes import Storage
     from domains import Reservoir
     m = Model.load(model_path, path=model_path)
+
+    setattr(m, 'mode', 'scheduling')
+    setattr(m, 'planning', planning_model if include_planning else None)
+
     reservoirs = [n.name for n in m.nodes if type(n) in [Storage, Reservoir] and '(storage)' not in n.name]
     # piecewise_ifrs = [n.name for n in m.nodes if type(n) == Storage and '(storage)' not in n.name]
     m.setup()
@@ -789,8 +773,6 @@ def run_model(basin, climate, price_years, network_key=None, start=None, end=Non
     step = -1
     now = datetime.now()
     monthly_seconds = 0
-    setattr(m, 'mode', 'scheduling')
-    setattr(m, 'planning', planning_model if include_planning else None)
 
     for date in tqdm(m.timestepper.datetime_index, ncols=60, disable=use_multiprocessing):
         step += 1

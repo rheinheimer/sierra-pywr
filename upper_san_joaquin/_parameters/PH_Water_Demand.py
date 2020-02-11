@@ -17,7 +17,7 @@ class PH_Water_Demand(WaterLPParameter):
         self.node = node
         self.block = block
 
-    def _value(self, timestep, scenario_index, mode='scheduling'):
+    def _value(self, timestep, scenario_index):
         kwargs = dict(timestep=timestep, scenario_index=scenario_index)
         all_energy_prices = self.model.tables['All Energy Price Values']
         param = self.res_name + '/Turbine Capacity' + self.month_suffix
@@ -100,7 +100,7 @@ class PH_Water_Demand(WaterLPParameter):
 
     def value(self, timestep, scenario_index):
         try:
-            return self._value(timestep, scenario_index, mode=self.mode)
+            return self._value(timestep, scenario_index)
         except Exception as err:
             print('\nERROR for parameter {}'.format(self.name))
             print('File where error occurred: {}'.format(__file__))

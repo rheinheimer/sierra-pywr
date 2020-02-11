@@ -1,9 +1,9 @@
-from parameters import WaterLPParameter
+from parameters import CustomParameter
 
 from utilities.converter import convert
 
 
-class MID_Northside_Demand(WaterLPParameter):
+class MID_Northside_Demand(CustomParameter):
     """"""
 
     reductions = [0, 0]
@@ -37,7 +37,13 @@ class MID_Northside_Demand(WaterLPParameter):
         return demand_cms
 
     def value(self, timestep, scenario_index):
-        return convert(self._value(timestep, scenario_index), "m^3 s^-1", "m^3 day^-1", scale_in=1, scale_out=1000000.0)
+        try:
+            return convert(self._value(timestep, scenario_index), "m^3 s^-1", "m^3 day^-1", scale_in=1,
+                           scale_out=1000000.0)
+        except Exception as err:
+            print('\nERROR for parameter {}'.format(self.name))
+            print('File where error occurred: {}'.format(__file__))
+            print(err)
 
     @classmethod
     def load(cls, model, data):

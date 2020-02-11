@@ -1,10 +1,9 @@
-from parameters import WaterLPParameter
+from parameters import CustomParameter
 
-from utilities.converter import convert
 from scipy import interpolate
 
 
-class Lake_McClure_Spill_Max_Flow(WaterLPParameter):
+class Lake_McClure_Spill_Max_Flow(CustomParameter):
     """"""
 
     def _value(self, timestep, scenario_index):
@@ -14,7 +13,6 @@ class Lake_McClure_Spill_Max_Flow(WaterLPParameter):
             cols = table.iloc[0, 1:]
             values = table.values[1:, 1:]
             self.esrd_spline = interpolate.RectBivariateSpline(rows, cols, values, kx=1, ky=1)
-
 
         elevation = self.model.parameters["Lake McClure/Elevation"].value(timestep, scenario_index)
 
@@ -29,7 +27,12 @@ class Lake_McClure_Spill_Max_Flow(WaterLPParameter):
         return max_mcm
 
     def value(self, timestep, scenario_index):
-        return self._value(timestep, scenario_index)
+        try:
+            return self._value(timestep, scenario_index)
+        except Exception as err:
+            print('\nERROR for parameter {}'.format(self.name))
+            print('File where error occurred: {}'.format(__file__))
+            print(err)
 
     @classmethod
     def load(cls, model, data):

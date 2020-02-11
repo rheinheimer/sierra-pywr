@@ -1,9 +1,7 @@
-from parameters import WaterLPParameter
-
-from utilities.converter import convert
+from parameters import CustomParameter
 
 
-class Lake_McClure_Water_Demand(WaterLPParameter):
+class Lake_McClure_Water_Demand(CustomParameter):
     """"""
 
     def _value(self, timestep, scenario_index):
@@ -26,7 +24,12 @@ class Lake_McClure_Water_Demand(WaterLPParameter):
         return target_fraction
 
     def value(self, timestep, scenario_index):
-        return self._value(timestep, scenario_index)
+        try:
+            return self._value(timestep, scenario_index)
+        except Exception as err:
+            print('\nERROR for parameter {}'.format(self.name))
+            print('File where error occurred: {}'.format(__file__))
+            print(err)
 
     @classmethod
     def load(cls, model, data):
