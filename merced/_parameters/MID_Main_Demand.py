@@ -1,9 +1,9 @@
-from parameters import WaterLPParameter
+from parameters import CustomParameter
 
 from utilities.converter import convert
 
 
-class MID_Main_Demand(WaterLPParameter):
+class MID_Main_Demand(CustomParameter):
     """"""
 
     reductions = [0, 0]

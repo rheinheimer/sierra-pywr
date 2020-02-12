@@ -1,9 +1,9 @@
-from parameters import WaterLPParameter
+from parameters import CustomParameter
 
 from scipy import interpolate
 
 
-class Lake_McClure_Spill_Max_Flow(WaterLPParameter):
+class Lake_McClure_Spill_Max_Flow(CustomParameter):
     """"""
 
     def _value(self, timestep, scenario_index):

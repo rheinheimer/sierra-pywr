@@ -635,9 +635,9 @@ def run_model(basin, climate, price_years, network_key=None, start=None, end=Non
     # =========================================
     # Load and register global model parameters
     # =========================================
-    import pyximport
-
-    pyximport.install(language_level=3)
+    # import pyximport
+    #
+    # pyximport.install(language_level=3)
 
     # sys.path.insert(0, os.getcwd())
     policy_folder = 'parameters'

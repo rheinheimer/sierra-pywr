@@ -2,23 +2,23 @@ import pandas as pd
 from calendar import monthrange
 from dateutil.relativedelta import relativedelta
 from pywr.parameters._parameters cimport Parameter
-# from pywr._core cimport Timestep, ScenarioIndex
+from pywr._core cimport Timestep, ScenarioIndex
 
 cdef class CustomParameter(Parameter):
-    cdef unicode res_class
-    cdef unicode res_name
-    cdef unicode res_name_full
-    cdef unicode attr_name
-    cdef int block
-    cdef int month
-    cdef int year
-    cdef int month_offset
-    cdef unicode month_suffix
-    cdef unicode demand_constant_param
-    cdef unicode elevation_param
-    cdef int operational_water_year
+    cdef readonly unicode res_class
+    cdef readonly unicode res_name
+    cdef readonly unicode res_name_full
+    cdef readonly unicode attr_name
+    cdef readonly int block
+    cdef readonly int month
+    cdef readonly int year
+    cdef readonly int month_offset
+    cdef readonly unicode month_suffix
+    cdef readonly unicode demand_constant_param
+    cdef readonly unicode elevation_param
+    cdef readonly int operational_water_year
 
-    def __cinit__(self, model):
+    def __init__(self, model):
         super().__init__(model)
 
         self.attr_name = ''
@@ -73,24 +73,25 @@ cdef class CustomParameter(Parameter):
         else:
             self.operational_water_year = self.datetime.year - 1
 
-    cpdef double get(self, param, timestep=None, scenario_index=None):
+    cpdef double get(self, unicode param, Timestep timestep=None, ScenarioIndex scenario_index=None):
         return self.model.parameters[param].value(timestep or self.model.timestep, scenario_index)
 
-    cpdef int days_in_month(self, year=None, month=None):
-        if year is None:
+    cpdef int days_in_month(self, int year=0, int month=0):
+        if not year:
             year = self.year
-        if month is None:
+        if not month:
             month = self.month
         return monthrange(year, month)[1]
 
-    cpdef list dates_in_month(self, year=None, month=None):
-        if year is None:
+    cpdef list dates_in_month(self, int year=0, int month=0):
+        if not year:
             year = self.year
-        if month is None:
+        if not month:
             month = self.month
         return pd.date_range(pd.datetime(year, month, 1), periods=monthrange(year, month)[1]).tolist()
 
-    cpdef double get_down_ramp_ifr(self, timestep, scenario_index, value, initial_value=None, rate=0.25):
+    cpdef double get_down_ramp_ifr(self, Timestep timestep, ScenarioIndex scenario_index,
+                                   double value, double initial_value=0.0, double rate=0.25):
         """
 
         :param timestep:
@@ -114,8 +115,8 @@ cdef class CustomParameter(Parameter):
 
     cpdef double get_up_ramp_ifr(self, timestep, scenario_index, initial_value=None, rate=0.25, max_flow=None):
 
-        cdef double Qp
-        cdef double qmax
+        # cdef double Qp
+        # cdef double qmax
 
         if self.model.mode == 'scheduling':
             if initial_value is None:
@@ -133,12 +134,13 @@ cdef class CustomParameter(Parameter):
 
         return qmax
 
-    cpdef double get_ifr_range(self, timestep, scenario_index, initial_value=None, rate=0.25, max_flow=None):
+    cpdef double get_ifr_range(self, Timestep timestep, ScenarioIndex scenario_index,
+                               double initial_value=0.0, double rate=0.25, double max_flow=1e9):
 
-        cdef char param_name
-        cdef double min_ifr
-        cdef double max_ifr
-        cdef double ifr_range
+        cdef unicode param_name
+        # cdef double min_ifr
+        # cdef double max_ifr
+        # cdef double ifr_range
 
         param_name = self.res_name + '/Min Requirement' + self.month_suffix
         # min_ifr = self.model.parameters[param_name].get_value(scenario_index) / 0.0864  # convert to cms
