@@ -24,6 +24,7 @@ class MinFlowParameter(IFRParameter):
     wet_baseflow_start = 100
     spring_recession_start = 250
     flood_lengths = {2: 7, 5: 2, 10: 2}
+    open_wet_season_gates = True
 
     def setup(self, *args, **kwargs):
         super().setup(*args, **kwargs)
@@ -35,7 +36,7 @@ class MinFlowParameter(IFRParameter):
                 self.include_functional_flows = True
                 self.metrics = self.model.tables['functional flows metrics']
                 self.water_year_type = 'moderate'
-                self.close_wet_season_gates = False
+                self.open_wet_season_gates = True
 
                 self.water_year_types = {
                     1: 'dry',
@@ -79,7 +80,7 @@ class MinFlowParameter(IFRParameter):
                 terciles = fnf_annual.quantile([0, 0.33, 0.66]).values
                 wyt = sum([1 for q in terciles if fnf_annual[wy] >= q])
                 self.water_year_type = self.water_year_types[wyt]
-                self.close_wet_season_gates = False
+                self.open_wet_season_gates = True
 
     def get_down_ramp_ifr(self, timestep, scenario_index, value, initial_value=None, rate=0.25):
         """
@@ -153,6 +154,9 @@ class MinFlowParameter(IFRParameter):
         ifr_cfs = 0.0
         fnf = self.model.parameters['Full Natural Flow'].dataframe
 
+        if self.dowy == 1:
+            self.open_wet_season_gates = True
+
         # Dry season baseflow
         if self.dowy < metrics['Wet_Tim']:
 
@@ -169,22 +173,33 @@ class MinFlowParameter(IFRParameter):
             # 2. If a 2-year flood has passed (i.e., look back 7 days), then drop to the 10th percentile base flow
             # 3. Look forward 2-7 days and release incoming 2, 5, or 10 year event
 
-            if not self.close_wet_season_gates:
+            if self.open_wet_season_gates:
                 # prev_6_days_mcm = fnf[timestep.datetime + relativedelta(days=-6):timestep.datetime].sum()
                 flow_recorder = self.model.recorders[self.res_name + '/flow']
                 node_flow = flow_recorder.to_dataframe()[(scenario_name,)]
                 wet_season_days = int(self.dowy - metrics['Wet_Tim'] + 1)
                 wet_season_start_date = timestep.datetime + relativedelta(days=-wet_season_days)
-                prev_N_days_mcm = node_flow[wet_season_start_date:timestep.datetime].sum()
+                prev_n_days_mcm = node_flow[wet_season_start_date:].sum()
                 two_year_flood_mcm = metrics['Peak_2'] / 35.315 * 0.0864 * 6
-                if prev_N_days_mcm >= two_year_flood_mcm:
-                    ifr_cfs = metrics['Wet_BFL_Mag_10']
-                    self.close_wet_season_gates = True
 
-            if not self.close_wet_season_gates:
+                # dry years
+                if self.water_year_type == 'dry':
+                    prev_1_day_cfs = self.model.nodes[self.res_name].prev_flow[sid] / 0.0864 * 35.315
+                    dry_year_wet_season_baseflow_cfs = metrics['Wet_BFL_Mag_50']
+                    if prev_1_day_cfs >= dry_year_wet_season_baseflow_cfs:
+                        ifr_cfs = dry_year_wet_season_baseflow_cfs
+                        self.open_wet_season_gates = False
+
+                # other years
+                else:
+                    if prev_n_days_mcm >= two_year_flood_mcm:
+                        ifr_cfs = metrics['Wet_BFL_Mag_10']
+                        self.open_wet_season_gates = False
+
+            if self.open_wet_season_gates:
                 ifr_mcm = fnf[timestep.datetime]
             else:
-                ifr_cfs = metrics['Wet_BFL_Mag_10']
+                ifr_cfs = metrics['Wet_BFL_Mag_50' if self.water_year_type == 'dry' else 'Wet_BFL_Mag_10']
 
             # mbf_start = dowys['low wet baseflow']
             # mbf_end = dowys['median wet baseflow']
@@ -196,7 +211,6 @@ class MinFlowParameter(IFRParameter):
 
         # Spring recession
         elif self.dowy == metrics['SP_Tim']:
-            self.close_wet_season_gates = False
             ifr_cfs = metrics['SP_Mag']
 
         # ...ramp down
@@ -214,48 +228,59 @@ class MinFlowParameter(IFRParameter):
 
         if winter_flood_season or self.prev_flood_mcm[sid]:
 
-            if self.flood_days[sid] < self.flood_duration[sid]:
+
+            # TEMPLATE-BASED CODE
+
+            # if self.flood_days[sid] < self.flood_duration[sid]:
+            #     winter_flood_mcm = self.prev_flood_mcm[sid]  # TODO: make scenario-safe
+
+            # elif self.water_year_type == 'moderate':
+            #     flood_start = metrics['Peak_Tim_2']
+            #     if self.dowy == flood_start:
+            #         self.flood_duration[sid] = metrics['Peak_Dur_2']
+            #         winter_flood_cfs = metrics['Peak_2']
+            #
+            # elif self.water_year_type == 'wet':
+            #     flood_starts = {}
+            #     for interval in [2, 5, 10]:
+            #         peak_timing = metrics['Peak_Tim_{}'.format(interval)]
+            #         flood_starts[peak_timing] = interval
+            #         if interval == 2:
+            #             # add in additional 2-year floods
+            #             for i in range(metrics['Peak_Fre_2']):
+            #                 flood_starts[peak_timing + 30 * (i - 1)] = interval
+            #     if self.dowy in flood_starts:
+            #         return_interval = flood_starts[self.dowy]
+            #         self.flood_duration[sid] = metrics['Peak_Dur_{}'.format(return_interval)]
+            #         winter_flood_cfs = metrics['Peak_{}'.format(return_interval)]
+
+
+            # Old code for hydrology-triggered floods
+            if self.flood_year[sid] and self.flood_days[sid] < metrics['Peak_Dur_{}'.format(self.flood_year[sid])]:
                 winter_flood_mcm = self.prev_flood_mcm[sid]  # TODO: make scenario-safe
 
-            elif self.water_year_type == 'moderate':
-                flood_start = metrics['Peak_Tim_2']
-                if self.dowy == flood_start:
-                    self.flood_duration[sid] = metrics['Peak_Dur_2']
-                    winter_flood_cfs = metrics['Peak_2']
+            else:
 
-            elif self.water_year_type == 'wet':
-                flood_starts = {}
-                for interval in [2, 5, 10]:
-                    peak_timing = metrics['Peak_Tim_{}'.format(interval)]
-                    flood_starts[peak_timing] = interval
-                    if interval == 2:
-                        # add in additional 2-year floods
-                        for i in range(metrics['Peak_Fre_2']):
-                            flood_starts[peak_timing + 30 * (i - 1)] = interval
-                if self.dowy in flood_starts:
-                    return_interval = flood_starts[self.dowy]
-                    self.flood_duration[sid] = metrics['Peak_Dur_{}'.format(return_interval)]
-                    winter_flood_cfs = metrics['Peak_{}'.format(return_interval)]
+                forecast_start = timestep.datetime
+
+                # loop through return intervals, from highest to lowest
+                all_return_intervals = [10, 5, 2]
+                return_intervals = [x for x in all_return_intervals if metrics['Peak_Dur_{}'.format(x)] > 0]
+                flood_durations = [int(metrics['Peak_Dur_{}'.format(x)]) for x in return_intervals]
+                flood_volumes_cfs = [metrics['Peak_{}'.format(x)] for x in return_intervals]
+                for i, return_interval in enumerate(return_intervals):
+                    flood_duration = flood_durations[i]
+                    flood_magnitude_mcm = flood_volumes_cfs[i] / 35.315 * 0.0864
+                    flood_volume_mcm = flood_magnitude_mcm * flood_duration
+                    forecast_mcm = fnf[forecast_start:forecast_start + relativedelta(days=flood_duration-1)].sum()
+                    if forecast_mcm >= flood_volume_mcm:
+                        # winter_flood_mcm = flood_volume_mcm / flood_duration
+                        winter_flood_mcm = flood_magnitude_mcm
+                        self.flood_year[sid] = return_interval
+                        break
 
             if winter_flood_cfs:
                 winter_flood_mcm = winter_flood_cfs / 35.315 * 0.0864
-
-            # Old code for hydrology-triggered floods
-            # if self.flood_year[sid] and self.flood_days[sid] < self.flood_lengths[self.flood_year[sid]]:
-            #     winter_flood_mcm = self.prev_flood_mcm[sid]  # TODO: make scenario-safe
-            #
-            # else:
-            #
-            #     forecast_start = timestep.datetime
-            #
-            #     # loop through return intervals, from highest to lowest
-            #     for return_interval, flood_volume_mcm in self.flood_volumes_mcm.items():
-            #         days = self.flood_lengths[return_interval]
-            #         forecast_mcm = fnf[forecast_start:forecast_start + relativedelta(days=days)].sum()
-            #         if forecast_mcm >= flood_volume_mcm:
-            #             winter_flood_mcm = flood_volume_mcm / days
-            #             self.flood_year[sid] = return_interval
-            #             break
 
             if winter_flood_mcm:
                 self.prev_flood_mcm[sid] = winter_flood_mcm
@@ -270,6 +295,7 @@ class MinFlowParameter(IFRParameter):
         ifr_mcm = ifr_mcm or (ifr_cfs / 35.315 * 0.0864)
         ifr_mcm = max(ifr_mcm, winter_flood_mcm)
 
+        # apply minimum of full natural flow and functional flow
         fnf_mcm = fnf[timestep.datetime]
         ifr_mcm = min(ifr_mcm, fnf_mcm)
 

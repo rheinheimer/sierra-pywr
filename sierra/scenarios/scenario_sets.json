@@ -15,15 +15,6 @@
             "energy_prices"
         ]
     },
-    "MIDH2O": {
-        "name": "MIDH2O",
-        "climates": [
-            "historical"
-        ],
-        "scenarios": [
-            "ifr_variations"
-        ]
-    },
     "functional_flows_full": {
         "name": "Functional Flows with Climate Change",
         "climates": [
@@ -35,7 +26,7 @@
         ]
     },
     "functional_flows_basic": {
-        "name": "Functional Flows Historical",
+        "name": "Functional Flows",
         "climates": [
             "historical"
         ],
