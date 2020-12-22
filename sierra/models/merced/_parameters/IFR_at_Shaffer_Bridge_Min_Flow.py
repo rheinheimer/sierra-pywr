@@ -26,8 +26,10 @@ class IFR_at_Shaffer_Bridge_Min_Flow(MinFlowParameter):
     def _value(self, timestep, scenario_index):
         # All flow units are in cubic meters per second (cms) unless otherwise noted
 
-        if timestep.month == 10 and timestep.day <= 10:
-            return self.model.nodes["IFR at Shaffer Bridge"].prev_flow[scenario_index.global_id]
+        if timestep.month == 10 and timestep.day <= 10 and timestep.index:
+            # don't forget to convert to cms
+            prev_flow_cms = self.model.nodes[self.res_name].prev_flow[scenario_index.global_id] / 0.0864
+            return prev_flow_cms
 
         # FERC REQUIREMENT
         WYT = self.model.tables['WYT for IFR Below Exchequer'][self.operational_water_year]

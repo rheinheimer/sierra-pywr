@@ -21,6 +21,7 @@ class Exchequer_Dam_Flood_Release_Requirement(WaterLPParameter):
         (10, 31): 247.311672
     }  # Units - meters
 
+    # TODO: make scenario-safe
     wyt = 'normal'
 
     max_release_cms = 6500 / 35.315  # 6500 cfs
